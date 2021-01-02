@@ -1,19 +1,29 @@
 package com.kelvi.blog.service.rs;
 
+import com.fasterxml.jackson.core.JsonProcessingException;
+import com.fasterxml.jackson.databind.ObjectMapper;
+import com.kelvi.blog.service.managment.AppConstants;
 import com.kelvi.blog.service.model.Post;
+import lombok.extern.slf4j.Slf4j;
+import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.*;
 
+import java.text.MessageFormat;
 import java.time.LocalDateTime;
 import java.util.ArrayList;
+import java.util.HashMap;
 import java.util.List;
+import java.util.Map;
 
 @RestController
 @RequestMapping("/api/v1/posts")
+@Slf4j
 public class PostServiceRs {
 
     @GetMapping
-    public ResponseEntity getList(){
+    public ResponseEntity getList() throws Exception {
+
         List<Post> postList = new ArrayList<>();
         postList.add(new Post("uuid1", "title1", LocalDateTime.now(), "Author1", "Content1"));
         postList.add(new Post("uuid2", "title2", LocalDateTime.now().plusDays(1), "Author2", "Content2"));
@@ -61,7 +71,9 @@ public class PostServiceRs {
         try {
             prePersist(post);
         }catch (Exception e){
-            //TODO: return a message
+            //TODO: log the error and return a message
+            log.error("TEST");
+            return jsonMessageResponse(HttpStatus.BAD_REQUEST, e);
         }
 
         //TODO: persist the entity
@@ -131,5 +143,38 @@ public class PostServiceRs {
     }
 
     private void postDelete(String uuid) throws Exception{
+    }
+
+    public static ResponseEntity jsonMessageResponse(HttpStatus status, Object object) {
+        if (object instanceof Throwable) {
+            Throwable t = (Throwable) object;
+            return jsonResponse(status, AppConstants.JSON_GENERIC_MESSAGE_KEY, getErrorMessage(t));
+        } else {
+            return jsonResponse(status, AppConstants.JSON_GENERIC_MESSAGE_KEY, "" + object);
+
+        }
+    }
+
+    public static ResponseEntity jsonResponse(HttpStatus status, String key, Object value) {
+        Map<String, String> toJson = new HashMap<String, String>();
+        toJson.put(key, value.toString());
+        return jsonResponse(toJson, status);
+    }
+
+    public static ResponseEntity jsonResponse(Map<String, String> toJson, HttpStatus status) {
+        ObjectMapper objectMapper = new ObjectMapper();
+        String jsonStr = "";
+        try {
+            jsonStr = objectMapper.writeValueAsString(toJson);
+        } catch (JsonProcessingException e) {
+            e.printStackTrace();
+        }
+        return ResponseEntity.status(status).body(jsonStr);
+    }
+
+    private static String getErrorMessage(Throwable t) {
+        String exceptionClass = t.getClass().getCanonicalName();
+        return t.getMessage() == null ?
+                exceptionClass : MessageFormat.format("{0}: {1}", exceptionClass, t.getMessage());
     }
 }
