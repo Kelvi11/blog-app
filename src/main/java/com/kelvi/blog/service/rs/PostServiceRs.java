@@ -67,12 +67,12 @@ public class PostServiceRs {
 
     @PostMapping
     public ResponseEntity persist(Post post){
-
+        log.info("persist");
         try {
             prePersist(post);
         }catch (Exception e){
             //TODO: log the error and return a message
-            log.error("TEST");
+            log.error("persist", e);
             return jsonMessageResponse(HttpStatus.BAD_REQUEST, e);
         }
 
@@ -143,6 +143,15 @@ public class PostServiceRs {
     }
 
     private void postDelete(String uuid) throws Exception{
+    }
+
+    public static ResponseEntity jsonErrorMessageResponse(Object error) {
+        if (error instanceof Throwable) {
+            Throwable t = (Throwable) error;
+            return jsonResponse(HttpStatus.INTERNAL_SERVER_ERROR, AppConstants.JSON_GENERIC_MESSAGE_KEY, getErrorMessage(t));
+        } else {
+            return jsonResponse(HttpStatus.INTERNAL_SERVER_ERROR, AppConstants.JSON_GENERIC_MESSAGE_KEY, "" + error);
+        }
     }
 
     public static ResponseEntity jsonMessageResponse(HttpStatus status, Object object) {
